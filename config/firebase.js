@@ -1,7 +1,7 @@
 import {initializeApp} from 'firebase/app';
-import {getAuth} from 'firebase/auth';
+import {getStorage} from "firebase/storage";
 import {getFirestore} from 'firebase/firestore';
-import Constants from 'expo-constants';
+
 
 const firebaseConfig = {
     apiKey: "AIzaSyDGPsJGvPaJvjHSFKhhg9RTiEhAq-SHv7k",
@@ -14,9 +14,10 @@ const firebaseConfig = {
     measurementId: "G-13W6TBRF51"
 };
 
-initializeApp(firebaseConfig);
-export const auth = getAuth();
+const app = initializeApp(firebaseConfig);
 export const database = getFirestore();
+export const storage = getStorage(app);
+
 
 
 

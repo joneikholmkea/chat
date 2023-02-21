@@ -1,23 +1,33 @@
 import { StatusBar } from 'expo-status-bar';
-import { FlatList, StyleSheet, Text, View, TouchableOpacity, Button } from 'react-native';
+import { FlatList, 
+  StyleSheet, 
+  Text, 
+  View, 
+  Button,
+  Image
+  } from 'react-native';
+
+import * as ImagePicker from 'expo-image-picker'
+
 import React, {
-  useState, 
-  useCallback
+  useState
 } from 'react';
 
 import {
   collection,
   addDoc,
-  orderBy,
   query,
   onSnapshot
 } from 'firebase/firestore'
 
-import {database} from './config/firebase'
-import FlatListDemo from './FlatListDemo';
+import {database, storage} from './config/firebase'
+import {ref, uploadBytes} from "firebase/storage";
+
 export default function App() {
   const chatColl = 'notes';
   const [notes, setNotes] = useState([]);
+  const [imagePath, setImagePath] = useState(null);
+  const [image, setImage] = useState(null);
   const readDB = () => {
     const collectionRef = collection(database, chatColl);
     const q = query(collectionRef, ref => ref.orderBy('createdAt', 'desc'));
@@ -35,19 +45,44 @@ export default function App() {
 
   const addNote = () => {
     addDoc(collection(database, chatColl), {
-        text: "New note"
+        text: "Tuesday note"
     });
   }
 
-  const clickRow = () => {
-    alert("hej");
+  const takeImageHandler = async () => {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing:true
+      });
+      setImagePath(result.assets[0].uri);
+      setImage(result)
+  }
+
+  const uploadImage = async () => {
+    const res = await fetch(imagePath);
+    const blob = await res.blob();
+    const storageRef = ref(storage, 'some-child');
+    uploadBytes(storageRef, blob).then((snapshot) => {
+      console.log("uploaded blob or file");
+    });
+  };
+
+  var imagePreview;
+
+  if(image){
+    imagePreview = <Image  style={styles.image} source={{uri: imagePath}}/>;
+  }else{
+    imagePreview = <Image  style={styles.image} source={{uri: 'https://reactjs.org/logo-og.png'}}/>;
   }
 
   return (
     <View style={styles.container}>
+      <Button title='Get Image' onPress={takeImageHandler}/>
+      <Button title='Upload Image' onPress={uploadImage}/>
       <Button title='New Note' onPress={addNote}/>
       <Button title='ReadDB' onPress={readDB}/>
-      <Text>Open up App.js to start working on your app</Text>
+      <View style={styles.imagePreview}>
+        {imagePreview}
+      </View>
       <StatusBar style="auto" />
       <FlatList
         data={notes}
@@ -77,4 +112,20 @@ const styles = StyleSheet.create({
     borderColor: "#944"
     
   },
+  imagePreview:{
+    width:'100%',
+    height:200,
+    alignItems:'center',
+    backgroundColor: "#933"
+  }, 
+  image:{
+    width:'100%',
+    height:'100%'
+  }
 });
+
+
+
+// sources:
+// https://firebase.google.com/docs/web/setup#add-sdk-and-initialize
+// https://firebase.google.com/docs/storage/web/upload-files
