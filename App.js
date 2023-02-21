@@ -126,6 +126,6 @@ const styles = StyleSheet.create({
 
 
 
-// sources:
+// sources: Good ones at that!
 // https://firebase.google.com/docs/web/setup#add-sdk-and-initialize
 // https://firebase.google.com/docs/storage/web/upload-files
