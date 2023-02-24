@@ -15,21 +15,23 @@ import {
   onSnapshot
 } from 'firebase/firestore';
 import {database, storage} from '../config/firebase';
-import {ref, uploadBytes, getDownloadURL} from "firebase/storage";
+import {ref, uploadBytes, getDownloadURL, deleteObject} from "firebase/storage";
 
 const DetailView = ({navigation, route}) => {
-    const [text, setText] = useState(route.params.object.text);
-    const [hasImage, setHasImage] = useState(route.params.object.hasImage);
-    const [imagePath, setImagePath] = useState(null);
+  const [text, setText] = useState(route.params.object.text);
+  const [hasImage, setHasImage] = useState(route.params.object.hasImage);
+  const [imagePath, setImagePath] = useState(null);
   
-    const chatColl = 'notes';
-    const takeImageHandler = async () => {
+  const chatColl = 'notes';
+
+  const takeImageHandler = async () => {
       let result = await ImagePicker.launchImageLibraryAsync({
           allowsEditing:true
       });
-    setImage(result); // was result.assets[0].uri
     setImagePath(result.assets[0].uri); // was result.assets[0].uri
     setHasImage(true);
+    route.params.object.hasImage = true;
+    console.log("in takeImageHandler. route..hasImage: " + route.params.object.hasImage);
   }
 
   const uploadImage = async () => {
@@ -72,27 +74,49 @@ const DetailView = ({navigation, route}) => {
     });
   };
 
-  if(hasImage){
+  if(route.params.object.hasImage){ // will only be read at first render. Hence no extra downloads.
     downloadImage()
   }
 
-  const updateNote = async () => {
+
+
+  const saveNote = async () => {
     await setDoc(doc(database, chatColl, route.params.object.key), {
         text:text,
-        hasImage: hasImage
+        hasImage: route.params.object.hasImage
     })
-}
+    if(route.params.object.hasImage){
+      uploadImage();
+    }
+  }
+
+  const deleteImage = async () => {
+    const storageRef = ref(storage, route.params.object.key);
+    deleteObject(storageRef).then(() => {
+      // File deleted successfully
+      route.params.object.hasImage = false;
+      setImagePath(null);
+      setHasImage(false);
+      // setHasImage((prev) => {return false; })
+    }).catch((error) => {
+      // Uh-oh, an error occurred!
+    });
+};
     
     return (
     <View>
-        <Button title='Save' onPress={updateNote}/>
-        <Button title='UploadImage' onPress={uploadImage}/>
-        <Button title='Get Image' onPress={takeImageHandler}/>
+      <View style={styles.buttons}>
+        <Button  title='Get Image' onPress={takeImageHandler}/>
+        <Button title='Delete Image' onPress={deleteImage}/>
+        <Button style={styles.saveButton} title='Save' onPress={saveNote}/>
+        </View>
         <TextInput multiline={true} 
           onChangeText={newText => setText(newText)}>
             {route.params.object.text}
         </TextInput>
-        <Image  style={styles.image} source={{uri: imagePath}}/>
+        { hasImage &&
+         <Image  style={styles.image} source={{uri: imagePath}}/>
+        }
     </View> );
   };
 
@@ -100,8 +124,16 @@ export default DetailView;
 
 
 const styles = StyleSheet.create({
+  buttons:{
+    flexDirection: 'row',
+    alignItems:'stretch'
+  },
+  saveButton:{
+    //alignSelf:'flex-end'
+  },
   image:{
     width:200,
-    height:200
+    height:200,
+    backgroundColor:'#ddd'
   }
 });

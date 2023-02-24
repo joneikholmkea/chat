@@ -7,7 +7,6 @@ import { FlatList,
   Image
   } from 'react-native';
 
-import * as ImagePicker from 'expo-image-picker'
 
 import React, {
   useState
@@ -21,26 +20,26 @@ import {
 } from 'firebase/firestore'
 
 import {database, storage} from '../config/firebase'
-import {ref, uploadBytes, getDownloadURL} from "firebase/storage";
-import DetailView from '../screens/DetailView';
 
 const ListView = ({navigation, route}) => {  // route.params.xxx
 
     const chatColl = 'notes';
     const [notes, setNotes] = useState([]);
-    const [imagePath, setImagePath] = useState(null);
-    const [image, setImage] = useState(null);
-    const readDB = () => {
+    const readDB = async () => {
         const collectionRef = collection(database, chatColl);
         const q = query(collectionRef, ref => ref.orderBy('createdAt', 'desc'));
+        // const querySnapshot = await getDocs(q);
         onSnapshot(q, snapshot =>{
-        const _notes = [];
-        snapshot.forEach(snap => {
-            _notes.push({
-            ...snap.data(),
-            key: snap.id
+            const _notes = [];
+            snapshot.forEach(snap => {
+                _notes.push({
+                ...snap.data(),
+                key: snap.id
+                });
             });
-        });
+        // setNotes( prevNotes => {
+        //    return {...prevNotes, _notes}
+        //  });
         setNotes(_notes);
         });
     }
@@ -51,80 +50,25 @@ const ListView = ({navigation, route}) => {  // route.params.xxx
         });
     }
 
-    const takeImageHandler = async () => {
-        let result = await ImagePicker.launchImageLibraryAsync({
-            allowsEditing:true
-        });
-        setImagePath(result.assets[0].uri);
-        setImage(result)
-    }
-
-    const uploadImage = async () => {
-        const res = await fetch(imagePath);
-        const blob = await res.blob();
-        const storageRef = ref(storage, 'somechild.png');
-        uploadBytes(storageRef, blob).then((snapshot) => {
-        console.log("uploaded blob or file " + snapshot);
-        });
-    };
-
-    const downloadImage = async () => {
-        const storageRef = ref(storage, 'somechild.png');
-        getDownloadURL(storageRef)
-        .then((url) => {
-        // Insert url into an <img> tag to "download"
-        setImagePath(url);
-        })
-        .catch((error) => {
-        // A full list of error codes is available at
-        // https://firebase.google.com/docs/storage/web/handle-errors
-        switch (error.code) {
-            case 'storage/object-not-found':
-            // File doesn't exist
-            break;
-            case 'storage/unauthorized':
-            // User doesn't have permission to access the object
-            break;
-            case 'storage/canceled':
-            // User canceled the upload
-            break;
-    
-            // ...
-    
-            case 'storage/unknown':
-            // Unknown error occurred, inspect the server response
-            break;
-        }
-        });
-    };
-
     const clickRow = (obj) => {
-        // alert("row click " + str);
-        obj.imagePath = imagePath;
         navigation.navigate('DetailView', {object: obj})
     }
 
-    var imagePreview;
-
-    if(imagePath){
-        imagePreview = <Image  style={styles.image} source={{uri: imagePath}}/>;
-    }else{
-        imagePreview = <Image  style={styles.image} source={{uri: 'https://reactjs.org/logo-og.png'}}/>;
-    }
     
     return (
         <View style={styles.container}>
             <Button title='New Note' onPress={addNote}/>
-            <Button title='ReadDB' onPress={readDB}/>
+            <Button title='Load Notes' onPress={readDB}/>
+            {/* <Button title='ReadDB' onPress={readDB}/> */}
             <View style={styles.imagePreview}>
-                {imagePreview}
+                <Image  style={styles.image} source={{uri: 'https://reactjs.org/logo-og.png'}}/>
             </View>
             <StatusBar style="auto" />
             <FlatList
                 data={notes}
                 renderItem={({item}) => 
                 <Button style={styles.item} 
-                    title={item.text} 
+                    title={item.text.substring(0,30)} 
                     onPress={() => clickRow(item)}/>  
                 }
             />
@@ -151,7 +95,7 @@ const styles = StyleSheet.create({
     },
     imagePreview:{
       width:'100%',
-      height:200,
+      height:150,
       alignItems:'center',
       backgroundColor: "#933"
     }, 
